@@ -1,6 +1,11 @@
 import sys
 import os
-sys.path.append(os.path.abspath("../")) # "../" remonte d'un dossierr
+# 1. Récupère le chemin absolu du dossier contenant ce script (le dossier 'tests')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 2. Remonte d'un niveau pour atteindre la racine du projet ('Micrograd-From-Scratch')
+parent_dir = os.path.dirname(current_dir)
+# 3. Ajoute la racine au path
+sys.path.append(parent_dir)
 
 from micrograd.engine import Value
 

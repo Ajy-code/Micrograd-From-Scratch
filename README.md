@@ -1,51 +1,47 @@
-# micrograd-from-scratch
+# Micrograd from Scratch : Moteur d'Autodifférenciation Scalaire
 
-> **Moteur de différenciation automatique scalaire et étude des systèmes d'optimisation non-linéaires.**
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Fundamentals-success)
+![No Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen)
 
-## 📌 Philosophie du projet
-Ce projet implémente un moteur de **différenciation automatique en mode inverse** (reverse-mode autodiff) agissant au niveau scalaire. L'objectif est de s'extraire de l'opacité des frameworks modernes (boîtes noires) pour reconstruire les principes fondamentaux de la **rétropropagation du gradient** (backpropagation) au sein de graphes de calcul statiques.
+Ce projet est une implémentation *from scratch* (sans aucune bibliothèque mathématique externe comme NumPy ou PyTorch) d'un moteur d'autodifférenciation scalaire (autograd) et d'un mini-framework de réseaux de neurones (MLP). 
 
-En travaillant exclusivement sur des objets `Value` plutôt que sur des tenseurs, ce moteur permet une analyse granulaire de la **règle de la chaîne** (*chain rule*) et de la sensibilité des paramètres dans une architecture de type Perceptron Multicouche (MLP).
+L'objectif de ce projet est de démystifier la mécanique de la rétropropagation (backpropagation) en codant explicitement le graphe de calcul dynamique et la propagation locale des gradients par l'application stricte de la règle de dérivation en chaîne (Chain Rule).
 
+## 🎯 Objectifs techniques atteints
 
+- **Moteur Autograd Scalaire (`micrograd/engine.py`)** : 
+  - Création d'une classe `Value` encapsulant une donnée scalaire, son gradient, et l'historique de sa création (parents et opération).
+  - Surcharge des opérateurs magiques de Python (`__add__`, `__mul__`, `__pow__`, etc.) pour construire dynamiquement un Graphe Acyclique Dirigé (DAG) lors de la passe avant (*forward pass*).
+  - Implémentation du tri topologique pour garantir l'ordre exact de la rétropropagation.
+  - Implémentation analytique des dérivées locales pour les opérations de base et les fonctions d'activation non-linéaires (`tanh`, `ReLU`).
 
-## 🛠️ Spécifications Techniques
+- **Mini-Framework Réseau de Neurones (`micrograd/nn.py`)** :
+  - Conception modulaire orientée objet : classes `Module`, `Neuron`, `Layer`, et `MLP`.
+  - Initialisation aléatoire des poids et des biais en tant qu'objets `Value` traçables.
+  - Gestion centralisée des paramètres (`model.parameters()`) et remise à zéro des gradients (`zero_grad()`).
 
-### 1. Noyau de calcul (Engine)
-* **Graphe Orienté Acyclique (DAG)** : Représentation explicite des opérations arithmétiques. Chaque nœud `Value` stocke sa valeur locale (`data`) et son gradient partiel (`grad`).
-* **Tri Topologique** : Implémentation d'un ordonnancement récursif des dépendances garantissant une évaluation exacte des gradients lors de la phase `backward`.
-* **Accumulation de Gradient** : Gestion rigoureuse de la confluence des gradients (fan-out > 1) via une accumulation additive, assurant la justesse mathématique du calcul des dérivées partielles lors de l'utilisation multiple d'une même variable.
+- **Validation et Entraînement (`tests/test_nn.py`)** :
+  - Construction d'un réseau multi-couches (ex: `MLP(3, [4, 4, 1])`).
+  - Définition d'une fonction de perte (Mean Squared Error - MSE) scalaire.
+  - Implémentation d'une boucle d'entraînement complète avec descente de gradient classique (SGD) pour l'optimisation des poids et la validation de l'apprentissage.
 
-### 2. Opérateur de Transfert : CReLU (Concatenated ReLU)
-Le choix s'est porté sur la **CReLU** comme opérateur de transfert non-linéaire pour ses propriétés structurelles :
-* **Mapping avec préservation de phase** : En concaténant $ReLU(x)$ et $ReLU(-x)$, cet opérateur transforme un signal de dimension $n$ en un signal de dimension $2n$. Cela permet de capturer simultanément les composantes positives et négatives du signal.
-* **Linéarité par morceaux** : Ce choix facilite le flux de gradient par rapport aux fonctions sigmoïdales saturantes, tout en doublant l'espace des caractéristiques (*feature space*) pour une expressivité accrue.
+## 🧠 Architecture du Graphe de Calcul (L'ingénierie)
 
+Le cœur du projet repose sur la gestion rigoureuse de l'accumulation des gradients. 
 
+Lorsqu'un nœud du graphe est utilisé plusieurs fois (ex: `y = x*x + x`), la dérivée totale par rapport à ce nœud est la **somme** des dérivées partielles provenant de toutes ses branches parentes (règle du calcul multivarié). L'implémentation garantit cette accumulation via l'opérateur `+=` dans les fonctions `_backward` locales, évitant ainsi l'écrasement silencieux des gradients.
 
-### 3. Architecture du Modèle (MLP)
-* **Structure Feedforward** : Organisation modulaire en couches (`Layer`) et neurones (`Neuron`) où chaque poids et biais est une instance indépendante.
-* **Descente de Gradient** : Optimisation itérative par minimisation d'une fonction de perte scalaire (L2 ou Cross-Entropy).
-* **Régularisation** : Possibilité d'intégrer une pénalité sur la norme des poids pour contraindre la complexité du modèle.
+## 🛠️ Structure du projet
 
-## 🧪 Exemple d'implémentation
-
-```python
-from micrograd.engine import Value
-
-# Définition des entrées
-x = [Value(2.0, label='x1'), Value(3.0, label='x2')]
-
-# Construction d'un neurone simple (produit scalaire)
-w = [Value(0.1, label='w1'), Value(0.2, label='w2')]
-b = Value(0.01, label='bias')
-z = sum((wi*xi for wi,xi in zip(w, x)), b)
-
-# Application d'un redressement (base CReLU)
-y_pos = z.relu()
-y_neg = (-z).relu()
-
-# Rétropropagation automatique
-y_pos.backward()
-
-print(f"Gradient du poids w1 : {w[0].grad}")
+```text
+Micrograd-From-Scratch/
+├── micrograd/
+│   ├── __init__.py
+│   ├── engine.py       # Le moteur d'autograd (Classe Value, opérations, backward)
+│   └── nn.py           # Le framework MLP (Neuron, Layer, Multi-Layer Perceptron)
+├── tests/
+│   ├── __init__.py
+│   ├── test_engine.py  # Tests unitaires validant l'exactitude des gradients analytiques
+│   └── test_nn.py      # Script d'entraînement et test du MLP (Loss MSE, Descente de gradient)
+└── README.md
