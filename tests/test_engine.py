@@ -11,5 +11,8 @@ d = a * b + c
 e = d.tanh()
 
 e.backward()
+x = Value(3.0, label='x')
+y = x * x + x
+y.backward()
 
-print(a, b, c, d, e)
+print(x.grad)

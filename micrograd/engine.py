@@ -85,19 +85,23 @@ class Value:
                 self.grad += out.grad
         out._backward=_backward
         return out
+    #Mise en place de la backpropagation
     def backward(self):
         topo=[]
         visited=set()
+        #Parcours en largeur le graphe pour remonter à la "source"
         def build_topo(v):
             if v not in visited:
                 visited.add(v)
                 for parents in v._prev:
                     build_topo(parents)
+                # v est ajouté à topo aprés que tous ses parents sois visité    
                 topo.append(v)
+        #La liste topo est construite, c'est la liste des nœuds du graphe dans un ordre topologique 
         build_topo(self)
         self.grad=1.0
         for i in range(len(topo)):
             topo[len(topo)-i-1]._backward()
-
+    
             
 
